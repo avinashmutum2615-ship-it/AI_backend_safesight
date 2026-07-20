@@ -1,0 +1,1 @@
+export { receptionistPrompt } from "./receptionistPrompt.js";

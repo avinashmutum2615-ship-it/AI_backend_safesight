@@ -30,18 +30,48 @@ const doctorSchema = new mongoose.Schema(
       required: true,
     },
 
+
+
     availability: {
       status: {
-          type: Boolean,
-          default: true,
+        type: Boolean,
+        default: true,
       },
 
+      workingDays: {
+        type: [Number],
+        default: [0, 1, 2, 3, 4, 5, 6], 
+      },
+
+      startTime: {
+        type: String,
+        default: "09:00",
+      },
+
+      endTime: {
+        type: String,
+        default: "17:00",
+      },
+
+      slotDuration: {
+        type: Number,
+        default: 30,
+      },
+
+      breaks: [
+        {
+          start: String,
+          end: String,
+        },
+      ],
+
       updatedAt: {
-          type: Date,
-          default: Date.now,
+        type: Date,
+        default: Date.now,
       },
     },
-  },
+    },
+
   {
     timestamps: true,
   }

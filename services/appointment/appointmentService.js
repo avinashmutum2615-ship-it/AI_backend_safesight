@@ -1,8 +1,28 @@
 import Appointment from "../../models/Appointment.js";
+import Patient from "../../models/Patient.js";
 import Doctor from "../../models/Doctor.js";
-import { appointmentResponse } from "../../utils/dto/appointmentResponse.js";
+import appointmentResponse from "../../utils/dto/appointmentResponse.js";
 
-export async function createAppointmentService(data, userId) {
+
+const timeToMinutes = (time) => {
+    const [hours, minutes] = time.split(":").map(Number);
+    return hours * 60 + minutes;
+};
+
+const minutesToTime = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+
+    return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+};
+
+export const createAppointmentService = async (data, userId) => {
+
+    const patient = await Patient.findById(data.patient);
+
+    if (!patient || !patient.isActive) {
+        throw new Error("Patient not found.");
+    }
 
     const doctor = await Doctor.findById(data.doctor);
 
@@ -10,21 +30,37 @@ export async function createAppointmentService(data, userId) {
         throw new Error("Doctor not found.");
     }
 
-    if (!doctor.availability.status) {
-        throw new Error("Doctor is unavailable.");
+    const existingAppointment = await Appointment.findOne({
+
+    doctor: doctor._id,
+
+    appointmentDate: data.appointmentDate,
+
+    appointmentTime: data.appointmentTime,
+
+    isActive: true,
+
+    status: {
+        $nin: [
+            "Cancelled",
+            "Completed",
+            "No Show"
+        ]
+    }
+
+    });
+
+    if (existingAppointment) {
+
+        throw new Error(
+            "This doctor already has an appointment at the selected time."
+        );
+
     }
 
     const appointment = await Appointment.create({
 
-        patientName: data.patientName,
-
-        address: data.address,
-
-        mobile: data.mobile,
-
-        age: data.age,
-
-        gender: data.gender,
+        patient: patient._id,
 
         doctor: doctor._id,
 
@@ -32,149 +68,392 @@ export async function createAppointmentService(data, userId) {
 
         appointmentTime: data.appointmentTime,
 
-        createdBy: userId,
+        status: data.status || "Pending Confirmation",
+
+        source: data.source || "Walk-in",
+
+        reason: data.reason,
+
+        notes: data.notes,
+
+        createdBy: userId
 
     });
 
-    return appointment;
+    await appointment.populate([
+        {
+            path: "patient",
+            select: "patientId name phone"
+        },
+        {
+            path: "doctor",
+            select: "name"
+        }
+    ]);
 
-}
+    return appointmentResponse(appointment);
 
-export async function getTodayAppointmentsService() {
+};
 
-    const today = new Date();
-
-    const start = new Date(today);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date(today);
-    end.setHours(23, 59, 59, 999);
+export const getAllAppointmentsService = async () => {
 
     const appointments = await Appointment.find({
-        appointmentDate: {
-            $gte: start,
-            $lte: end,
-        },
+
+        isActive: true
+
+    })
+    .populate({
+        path: "patient",
+        select: "patientId name phone"
     })
     .populate({
         path: "doctor",
-        populate: {
-            path: "userId",
-            select: "name",
-        },
+        select: "name"
     })
     .sort({
-        appointmentTime: 1,
+        appointmentDate: 1,
+        appointmentTime: 1
     });
 
-    return appointments;
-}
+    return appointments.map(appointmentResponse);
 
-export async function searchAppointmentsService(query) {
+};
 
-    const filter = {};
-
-    if (query.mobile) {
-        filter.mobile = query.mobile;
-    }
-
-    if (query.patientName) {
-        filter.patientName = {
-            $regex: query.patientName,
-            $options: "i",
-        };
-    }
-
-    const appointments = await Appointment.find(filter)
-        .populate({
-            path: "doctor",
-            populate: {
-                path: "userId",
-                select: "name",
-            },
-        })
-        .sort({
-            appointmentDate: -1,
-        });
-
-    return appointments;
-}
-
-export async function getAppointmentByIdService(id) {
+export const getAppointmentByIdService = async (id) => {
 
     const appointment = await Appointment.findById(id)
         .populate({
+            path: "patient",
+            select: "patientId name phone email address bloodGroup emergencyContact"
+        })
+        .populate({
             path: "doctor",
-            populate: {
-                path: "userId",
-                select: "name email phone",
-            },
+            select: "name"
         });
 
-    if (!appointment) {
+    if (!appointment || !appointment.isActive) {
         throw new Error("Appointment not found.");
     }
 
-    return appointment;
-}
+    return appointmentResponse(appointment);
 
-export async function updateAppointmentStatusService(id, status) {
+};
 
-    const appointment = await Appointment.findById(id);
+export const updateAppointmentService = async (
+    id,
+    data,
+    userId
+) => {
 
-    if (!appointment) {
-        throw new Error("Appointment not found.");
+    const appointment = await getAppointmentService({
+        appointmentId: id,
+    });   
+    
+    appointment.updatedBy = userId;
+
+    // Check Doctor
+    let doctor = appointment.doctor;
+
+    if (data.doctor) {
+
+        doctor = await Doctor.findById(data.doctor);
+
+        if (!doctor) {
+            throw new Error("Doctor not found.");
+        }
+
     }
 
-    appointment.status = status;
+    // Prevent duplicate slot booking
+    const existingAppointment = await Appointment.findOne({
+
+        _id: { $ne: appointment._id },
+
+        doctor: doctor._id || doctor,
+
+        appointmentDate: data.appointmentDate,
+
+        appointmentTime: data.appointmentTime,
+
+        isActive: true,
+
+        status: {
+            $nin: [
+                "Cancelled",
+                "Completed",
+                "No Show"
+            ]
+        }
+
+    });
+
+    if (existingAppointment) {
+
+        throw new Error(
+            "This doctor already has an appointment at the selected time."
+        );
+
+    }
+
+    // Update allowed fields
+   if (data.doctor) {
+    appointment.doctor = doctor._id;
+    }
+
+    if (data.appointmentDate) {
+        appointment.appointmentDate = data.appointmentDate;
+    }
+
+    if (data.appointmentTime) {
+        appointment.appointmentTime = data.appointmentTime;
+    }
+
+    if (data.status) {
+        appointment.status = data.status;
+    }
+
+    if (data.source) {
+        appointment.source = data.source;
+    }
+
+    if (data.reason !== undefined) {
+        appointment.reason = data.reason;
+    }
+
+    if (data.notes !== undefined) {
+        appointment.notes = data.notes;
+    }
 
     await appointment.save();
 
-    return appointment;
-}
+    await appointment.populate([
+        {
+            path: "patient",
+            select: "patientId name phone"
+        },
+        {
+            path: "doctor",
+            select: "name"
+        }
+    ]);
 
-export async function deleteAppointmentService(id) {
+    return appointmentResponse(appointment);
 
-    const appointment = await Appointment.findByIdAndDelete(id);
+};
 
-    if (!appointment) {
+export const deleteAppointmentService = async (id) => {
+
+    const appointment = await Appointment.findById(id);
+
+    if (!appointment || !appointment.isActive) {
+        throw new Error("Appointment not found.");
+    }
+
+    appointment.isActive = false;
+
+    await appointment.save();
+
+    return;
+
+};
+
+
+export const getAvailableSlotsService = async (
+    doctorId,
+    date,
+    excludeAppointmentId = null
+) => {
+
+    const doctor = await Doctor.findById(doctorId);
+
+    if (!doctor) {
+        throw new Error("Doctor not found.");
+    }
+
+    if (
+        !doctor.availability ||
+        !doctor.availability.status
+    ) {
+        throw new Error("Doctor is currently unavailable.");
+    }
+
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+   const query = {
+
+    doctor: doctorId,
+
+        appointmentDate: {
+            $gte: startOfDay,
+            $lte: endOfDay
+        },
+
+        isActive: true,
+
+        status: {
+            $nin: [
+                "Cancelled",
+                "Completed",
+                "No Show"
+            ]
+        }
+
+    };
+
+    if (excludeAppointmentId) {
+
+        query._id = {
+            $ne: excludeAppointmentId
+        };
+
+    }
+
+    const bookedAppointments = await Appointment.find(query)
+        .select("appointmentTime");
+
+    const bookedSlots = bookedAppointments.map(
+        appointment => appointment.appointmentTime
+    );
+
+    const {
+        startTime,
+        endTime,
+        slotDuration,
+        breaks = []
+    } = doctor.availability;
+
+    const start = timeToMinutes(startTime);
+    const end = timeToMinutes(endTime);
+
+    const allSlots = [];
+
+    for (
+        let current = start;
+        current + slotDuration <= end;
+        current += slotDuration
+    ) {
+
+        const slot = minutesToTime(current);
+
+        const isBreak = breaks.some((br) => {
+
+            const breakStart = timeToMinutes(br.start);
+            const breakEnd = timeToMinutes(br.end);
+
+            return (
+                current >= breakStart &&
+                current < breakEnd
+            );
+
+        });
+
+        if (!isBreak) {
+            allSlots.push(slot);
+        }
+
+    }
+
+    return allSlots.filter(
+        slot => !bookedSlots.includes(slot)
+    );
+
+};
+
+export const getAppointmentService = async ({
+    appointmentId,
+    patientId,
+    doctorId,
+    appointmentDate,
+    appointmentTime,
+    status,
+}) => {
+
+    const query = {};
+    if (appointmentId) {
+        query._id = appointmentId;
+    }
+
+    if (patientId) query.patient = patientId;
+
+    if (doctorId) query.doctor = doctorId;
+
+    if (status) query.status = status;
+
+    if (appointmentTime) {
+        query.appointmentTime = appointmentTime;
+    }
+
+    if (appointmentDate) {
+
+        const startOfDay = new Date(appointmentDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(appointmentDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        query.appointmentDate = {
+            $gte: startOfDay,
+            $lte: endOfDay,
+        };
+
+    }
+
+    const appointment = await Appointment.findOne(query)
+        .populate({
+            path: "patient",
+            select: "patientId name phone",
+        })
+        .populate({
+            path: "doctor",
+            select: "name specialization",
+        });
+
+    if (!appointment || !appointment.isActive) {
         throw new Error("Appointment not found.");
     }
 
     return appointment;
-}
+};
 
-export async function getDashboardService() {
+export const getDashboardService = async () => {
 
     const today = new Date();
 
-    const start = new Date(today);
-    start.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
 
-    const end = new Date(today);
-    end.setHours(23, 59, 59, 999);
+    const tomorrow = new Date(today);
+
+    tomorrow.setDate(today.getDate() + 1);
 
     const todayAppointments = await Appointment.countDocuments({
         appointmentDate: {
-            $gte: start,
-            $lte: end,
+            $gte: today,
+            $lt: tomorrow
         },
+        isActive: true
     });
 
     const booked = await Appointment.countDocuments({
-        status: "booked",
+        status: "Confirmed",
+        isActive: true
     });
 
     const completed = await Appointment.countDocuments({
-        status: "completed",
+        status: "Completed",
+        isActive: true
     });
 
     const cancelled = await Appointment.countDocuments({
-        status: "cancelled",
+        status: "Cancelled",
+        isActive: true
     });
 
     const availableDoctors = await Doctor.countDocuments({
-        "availability.status": true,
+        "availability.status": true
     });
 
     return {
@@ -182,7 +461,98 @@ export async function getDashboardService() {
         booked,
         completed,
         cancelled,
-        availableDoctors,
+        availableDoctors
+    };
+};
+
+export const cancelAppointmentService = async (
+    appointmentId,
+    userId
+) => {
+
+    const appointment = await getAppointmentService({
+        appointmentId,
+    });
+
+    if (appointment.status === "Cancelled") {
+        throw new Error("Appointment is already cancelled.");
+    }
+
+    appointment.status = "Cancelled";
+
+    appointment.updatedBy = userId;
+
+    await appointment.save();
+
+    await appointment.populate([
+        {
+            path: "patient",
+            select: "patientId name phone"
+        },
+        {
+            path: "doctor",
+            select: "name"
+        }
+    ]);
+
+    return appointmentResponse(appointment);
+
+};
+
+export const searchAppointmentsService = async ({
+    patientId,
+    doctorId,
+    appointmentDate,
+    status,
+    limit = 20,
+}) => {
+
+    const query = {
+        isActive: true,
     };
 
-}
+    if (patientId) {
+        query.patient = patientId;
+    }
+
+    if (doctorId) {
+        query.doctor = doctorId;
+    }
+
+    if (status) {
+        query.status = status;
+    }
+
+    if (appointmentDate) {
+
+        const startOfDay = new Date(appointmentDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(appointmentDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        query.appointmentDate = {
+            $gte: startOfDay,
+            $lte: endOfDay,
+        };
+
+    }
+
+    const appointments = await Appointment.find(query)
+        .populate({
+            path: "patient",
+            select: "patientId name phone",
+        })
+        .populate({
+            path: "doctor",
+            select: "name specialization",
+        })
+        .sort({
+            appointmentDate: 1,
+            appointmentTime: 1,
+        })
+        .limit(limit);
+
+    return appointments.map(appointmentResponse);
+
+};

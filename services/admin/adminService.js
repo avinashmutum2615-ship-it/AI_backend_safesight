@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import User from "../../models/User.js";
 import Doctor from "../../models/Doctor.js";
+import Receptionist from "../../models/Receptionist.js";
 import { hashPassword } from "../../utils/hashPassword.js";
 import { userResponse } from "../../utils/dto/userResponse.js";
 import { doctorResponse } from "../../utils/dto/doctorResponse.js";
@@ -14,11 +15,22 @@ export async function createDoctorService(data) {
         session.startTransaction();
 
         const existingUser = await User.findOne({
-            email: data.email,
+            $or: [
+                { email: data.email },
+                { phone: data.phone }
+            ]
         }).session(session);
 
         if (existingUser) {
-            throw new Error("Email already exists.");
+
+            if (existingUser.email === data.email) {
+                throw new Error("Email already exists.");
+            }
+
+            if (existingUser.phone === data.phone) {
+                throw new Error("Phone number already exists.");
+            }
+
         }
 
         const hashedPassword = await hashPassword(data.password);
@@ -39,7 +51,6 @@ export async function createDoctorService(data) {
             qualification: data.qualification,
             experience: data.experience,
             consultationFee: data.consultationFee,
-            available: true,
         });
 
         await doctor.save({ session });
@@ -59,35 +70,65 @@ export async function createDoctorService(data) {
         session.endSession();
 
     }
+
 }
 
 export async function createReceptionistService(data) {
 
-    const existingUser = await User.findOne({
-        email: data.email,
-    });
+    const session = await mongoose.startSession();
 
-    if (existingUser) {
-        throw new Error("Email already exists.");
+    try {
+
+        session.startTransaction();
+
+        const existingUser = await User.findOne({
+            $or: [
+                { email: data.email },
+                { phone: data.phone }
+            ]
+        }).session(session);
+
+        if (existingUser) {
+            if (existingUser.email === data.email) {
+                throw new Error("Email already exists.");
+            }
+
+            if (existingUser.phone === data.phone) {
+                throw new Error("Phone number already exists.");
+            }
+        }
+
+        const hashedPassword = await hashPassword(data.password);
+
+        const user = new User({
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            password: hashedPassword,
+            role: "receptionist",
+        });
+
+        await user.save({ session });
+
+        const receptionist = new Receptionist({
+            userId: user._id,
+        });
+
+        await receptionist.save({ session });
+
+        await session.commitTransaction();
+
+        return userResponse(user);
+
+    } catch (error) {
+
+        await session.abortTransaction();
+        throw error;
+
+    } finally {
+
+        session.endSession();
     }
-
-    const hashedPassword = await hashPassword(data.password);
-
-    const receptionist = await User.create({
-
-        name: data.name,
-
-        email: data.email,
-
-        phone: data.phone,
-
-        password: hashedPassword,
-
-        role: "receptionist",
-
-    });
-
-   return userResponse(receptionist);
 }
 
 export async function getAllStaffService() {

@@ -1,18 +1,19 @@
+import "./config/env.js";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import chatRoutes from "./routes/chatRoutes.js";
-import authRoutes from "./routes/authRoutes.js";
-
+import chatRoutes from "./routes/ai/chatRoutes.js";
+import authRoutes from "./routes/auth/authRoutes.js";
 import { connectDb } from "./config/database.js";
 import { auth } from "./middleware/auth.js";
-import adminRoutes from "./routes/adminRoutes.js";
-import patientRoutes from "./routes/patientRoutes.js";
-import doctorRoutes from "./routes/doctorRoutes.js";
-import appointmentRoutes from "./routes/appointmentRoutes.js";
+import adminRoutes from "./routes/admin/adminRoutes.js";
+import patientRoutes from "./routes/patient/patientRoutes.js";
+import doctorRoutes from "./routes/doctor/doctorRoutes.js";
+import appointmentRoutes from "./routes/appointment/appointmentRoutes.js";
+import receptionistRoutes from"./routes/receptionist/receptionistRoutes.js";
+import prescriptionRoutes from "./routes/prescription/prescriptionRoutes.js";
 
 
-dotenv.config();
+
 
 const app = express();
 
@@ -26,13 +27,15 @@ app.use((req, res, next) => {
     console.log(`${req.method} ${req.url}`);
     next();
 });
-
+ 
 app.use("/api/auth", authRoutes);
-app.use("/api/chat", chatRoutes);
+app.use("/api/ai/chat", chatRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/patients", patientRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/appointments", appointmentRoutes);
+app.use("/api/receptionists", receptionistRoutes);
+app.use("/api/prescriptions", prescriptionRoutes);
 
 app.get("/", (req, res) => {
     res.send("Welcome to SafeSight AI");

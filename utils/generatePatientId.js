@@ -2,9 +2,18 @@ import Patient from "../models/Patient.js";
 
 export async function generatePatientId() {
 
-    const totalPatients = await Patient.countDocuments();
+    const lastPatient = await Patient
+        .findOne()
+        .sort({ createdAt: -1 });
 
-    const nextNumber = totalPatients + 1;
+    if (!lastPatient) {
+        return "PAT000001";
+    }
 
-    return `SS-${String(nextNumber).padStart(6, "0")}`;
+    const number = parseInt(
+        lastPatient.patientId.replace("PAT", ""),
+        10
+    );
+
+    return `PAT${String(number + 1).padStart(6, "0")}`;
 }

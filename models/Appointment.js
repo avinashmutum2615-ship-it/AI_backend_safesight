@@ -1,72 +1,79 @@
 import mongoose from "mongoose";
 
 const appointmentSchema = new mongoose.Schema(
-  {
-    patientName: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    {
+        patient: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Patient",
+            required: true
+        },
 
-    address: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+        doctor: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Doctor",
+            required: true
+        },
 
-    mobile: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+        appointmentDate: {
+            type: Date,
+            required: true
+        },
 
-    age: {
-      type: String,
-      required: true,
-    },
+        appointmentTime: {
+            type: String,
+            required: true
+        },
 
-    gender: {
-      type: String,
-      enum: ["Male", "Female", "Other"],
-      required: true,
-    },
+        status: {
+            type: String,
+            enum: [
+                "Pending Confirmation",
+                "Confirmed",
+                "Checked In",
+                "In Consultation",
+                "Completed",
+                "Cancelled",
+                "No Show"
+            ],
+            default: "Pending Confirmation"
+        },
 
-    doctor: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Doctor",
-      required: true,
-    },
+        source: {
+            type: String,
+            enum: [
+                "Walk-in",
+                "Phone",
+                "Online"
+            ],
+            default: "Walk-in"
+        },
 
-    appointmentDate: {
-      type: Date,
-      required: true,
-    },
+        reason: {
+            type: String,
+            trim: true,
+            default: ""
+        },
 
-    appointmentTime: {
-      type: String,
-      required: true,
-    },
+        notes: {
+            type: String,
+            trim: true,
+            default: ""
+        },
 
-    status: {
-      type: String,
-      enum: [
-        "booked",
-        "completed",
-        "cancelled",
-        "no-show",
-      ],
-      default: "booked",
-    },
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true
+        },
 
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+        isActive: {
+            type: Boolean,
+            default: true
+        }
     },
-  },
-  {
-    timestamps: true,
-  }
+    {
+        timestamps: true
+    }
 );
 
 export default mongoose.model("Appointment", appointmentSchema);

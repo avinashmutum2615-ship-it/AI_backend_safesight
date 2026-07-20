@@ -9,16 +9,10 @@ const patientSchema = new mongoose.Schema(
       index: true,
     },
 
-    firstName: {
+    name: {
       type: String,
       required: true,
       trim: true,
-    },
-
-    lastName: {
-      type: String,
-      trim: true,
-      default: "",
     },
 
     gender: {
