@@ -1,35 +1,35 @@
-import fs from "fs/promises";
+import fs from "fs";
 import path from "path";
-import pdf from "pdf-parse";
+import { Document } from "@langchain/core/documents";
 
-export const loadPDFs = async (folderPath) => {
+export async function loadDocuments(rootDir) {
+    const docs = [];
 
-    const files = await fs.readdir(folderPath);
+    function walk(dir) {
+        const files = fs.readdirSync(dir);
 
-    const documents = [];
+        for (const file of files) {
+            const fullPath = path.join(dir, file);
 
-    for (const file of files) {
+            if (fs.statSync(fullPath).isDirectory()) {
+                walk(fullPath);
+            } else if (file.endsWith(".md")) {
+                const content = fs.readFileSync(fullPath, "utf8");
 
-        if (!file.endsWith(".pdf")) continue;
-
-        const buffer = await fs.readFile(
-            path.join(folderPath, file)
-        );
-
-        const data = await pdf(buffer);
-
-        documents.push({
-
-            pageContent: data.text,
-
-            metadata: {
-                source: file,
-            },
-
-        });
-
+                docs.push(
+                    new Document({
+                        pageContent: content,
+                        metadata: {
+                            source: file,
+                            category: path.basename(path.dirname(fullPath)),
+                        },
+                    })
+                );
+            }
+        }
     }
 
-    return documents;
+    walk(rootDir);
 
-};
+    return docs;
+}
