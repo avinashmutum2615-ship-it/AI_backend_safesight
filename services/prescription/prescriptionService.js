@@ -1,6 +1,6 @@
 import Prescription from "../../models/Prescription.js";
 import Visit from "../../models/Visit.js";
-
+import { getPatientDocument } from "../patient/patientService.js";
 import prescriptionResponse from "../../utils/dto/prescriptionResponse.js";
 
 export async function createPrescriptionService(data) {
@@ -76,6 +76,39 @@ export async function createPrescriptionService(data) {
     ]);
 
     return prescriptionResponse(prescription);
+
+}
+export async function createPrescriptionByPatientService(
+    doctorId,
+    patientKeyword,
+    data
+) {
+
+    // Find patient
+    const patient = await getPatientDocument(patientKeyword);
+
+    if (!patient) {
+        throw new Error("Patient not found.");
+    }
+
+    // Find active visit
+    const visit = await Visit.findOne({
+        patient: patient._id,
+        doctor: doctorId,
+        status: "In Progress",
+        isActive: true,
+    });
+
+    if (!visit) {
+        throw new Error(
+            "No active visit found for this patient."
+        );
+    }
+
+    return await createPrescriptionService({
+        visit: visit._id,
+        ...data,
+    });
 
 }
 

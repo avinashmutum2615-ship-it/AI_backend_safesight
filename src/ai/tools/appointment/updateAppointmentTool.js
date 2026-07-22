@@ -15,6 +15,11 @@ import {
     getAvailableSlotsService,
     updateAppointmentService
 } from "../../../../services/appointment/appointmentService.js";
+import {
+    logInfo,
+    logSuccess,
+    logError,
+} from "../../../../utils/logger.js";
 
 const schema = z.object({
 
@@ -47,85 +52,148 @@ export const updateAppointmentTool = createTool({
 
     handler: async (input, config) => {
 
-        const user = config.configurable.user;
+        const startTime = Date.now();
 
-        if (!user) {
-            throw new Error("User context is missing.");
-        }
+        try {
 
-        const patients = await searchPatientsService(input.patient);
+            logInfo("Update Appointment Tool Started", {
+                patient: input.patient,
+                doctor: input.doctor,
+                currentAppointmentDate: input.currentAppointmentDate,
+                newAppointmentDate: input.newAppointmentDate,
+                newAppointmentTime: input.newAppointmentTime,
+            });
 
-        if (patients.length === 0) {
-            throw new Error("Patient not found.");
-        }
+            const user = config.configurable.user;
 
-        const patient = patients[0];
-
-        let doctor = null;
-
-        if (input.doctor) {
-
-            const doctors = await searchDoctorsService(input.doctor);
-
-            if (doctors.length === 0) {
-                throw new Error("Doctor not found.");
+            if (!user) {
+                throw new Error("User context is missing.");
             }
 
-            doctor = doctors[0];
+            const patients = await searchPatientsService(input.patient);
 
-        }
-
-        const appointment = await getAppointmentService({
-            patientId: patient.id,
-            doctorId: doctor?.id,
-            appointmentDate: input.currentAppointmentDate,
-        });
-
-        const newDoctorId =
-            doctor?.id || appointment.doctor._id.toString();
-
-        const newAppointmentDate =
-            input.newAppointmentDate || appointment.appointmentDate;
-
-        const newAppointmentTime =
-            input.newAppointmentTime || appointment.appointmentTime;
-
-        if (
-            input.newAppointmentDate ||
-            input.newAppointmentTime ||
-            input.doctor
-        ) {
-
-            const availableSlots = await getAvailableSlotsService(
-                newDoctorId,
-                newAppointmentDate,
-                appointment._id
-            );
-
-            if (!availableSlots.includes(newAppointmentTime)) {
+            if (patients.length === 0) {
                 throw new Error(
-                    `The slot ${newAppointmentTime} is not available.`
+                    `No patient found matching "${input.patient}".`
                 );
             }
 
-        }
+            if (patients.length > 1) {
+                throw new Error(
+                    "Multiple patients found. Please specify the patient."
+                );
+            }
 
-        const updatedAppointment =
-            await updateAppointmentService(
-                appointment._id,
-                {
-                    doctor: newDoctorId,
-                    appointmentDate: newAppointmentDate,
-                    appointmentTime: newAppointmentTime,
-                    reason: input.reason,
-                    notes: input.notes,
-                    status: input.status,
-                },
-                user.id
-            );
+            const patient = patients[0];
 
-        return updatedAppointment;
+                let doctor = null;
 
-    }
+                if (input.doctor) {
 
+                    const doctors = await searchDoctorsService(input.doctor);
+
+                if (input.doctor) {
+
+                    const doctors = await searchDoctorsService(input.doctor);
+
+                    if (doctors.length === 0) {
+                        throw new Error(
+                            `No doctor found matching "${input.doctor}".`
+                        );
+                    }
+
+                    if (doctors.length > 1) {
+                        throw new Error(
+                            "Multiple doctors found. Please specify the doctor."
+                        );
+                    }
+
+                    doctor = doctors[0];
+                }
+
+                    const appointment = await getAppointmentService({
+                        patientId: patient.id,
+                        doctorId: doctor?.id,
+                        appointmentDate: input.currentAppointmentDate,
+                    });
+
+                    const newDoctorId =
+                        doctor?.id || appointment.doctor._id.toString();
+
+                    const newAppointmentDate =
+                        input.newAppointmentDate || appointment.appointmentDate;
+
+                    const newAppointmentTime =
+                        input.newAppointmentTime || appointment.appointmentTime;
+
+                    if (
+                        input.newAppointmentDate ||
+                        input.newAppointmentTime ||
+                        input.doctor
+                    ) {
+
+                        const availableSlots = await getAvailableSlotsService(
+                            newDoctorId,
+                            newAppointmentDate,
+                            appointment._id
+                        );
+
+                        logInfo("Available Slots", {
+                            doctor: doctor?.name ?? appointment.doctor.name,
+                            appointmentDate: newAppointmentDate,
+                            availableSlots,
+                        });
+
+                        if (!availableSlots.includes(newAppointmentTime)) {
+                            throw new Error(
+                                `The slot ${newAppointmentTime} is not available.`
+                            );
+                        }
+
+                    }
+
+                    logInfo("Updating Appointment", {
+                        patient: patient.name,
+                        doctor: doctor?.name ?? appointment.doctor.name,
+                        appointmentDate: newAppointmentDate,
+                        appointmentTime: newAppointmentTime,
+                    });
+
+                    const updatedAppointment =
+                        await updateAppointmentService(
+                            appointment._id,
+                            {
+                                doctor: newDoctorId,
+                                appointmentDate: newAppointmentDate,
+                                appointmentTime: newAppointmentTime,
+                                reason: input.reason,
+                                notes: input.notes,
+                                status: input.status,
+                            },
+                            user.id
+                        );
+
+                    logSuccess("Appointment Updated", {
+                        patient: patient.name,
+                        doctor: doctor?.name ?? appointment.doctor.name,
+                        appointmentDate: newAppointmentDate,
+                        appointmentTime: newAppointmentTime,
+                        executionTime: `${Date.now() - startTime} ms`,
+                    });
+
+                    return updatedAppointment;
+
+                }
+            } catch (error) {
+
+                logError("Update Appointment Tool Error", error);
+
+                throw error;
+
+            }
+
+
+
+   }   
+    
 });

@@ -1,8 +1,13 @@
 import Patient from "../../models/Patient.js";
+import Appointment from "../../models/Appointment.js";
 import { generatePatientId } from "../../utils/generatePatientId.js";
 import { patientResponse } from "../../utils/dto/patientResponse.js";
+import { normalizePatient } from "../../utils/normalizer.js";
+import { patientHistoryResponse } from "../../utils/dto/patientHistoryResponse.js";
 
 export async function createPatientService(data) {
+
+    data = normalizePatient(data);
 
     const patientId = await generatePatientId();
 
@@ -43,6 +48,36 @@ export async function getPatientByIdService(id) {
     }
 
     return patientResponse(patient);
+
+}
+
+export async function getPatientDocument(keyword) {
+
+    const patient = await Patient.findOne({
+        isActive: true,
+        $or: [
+            {
+                patientId: {
+                    $regex: keyword,
+                    $options: "i",
+                },
+            },
+            {
+                name: {
+                    $regex: keyword,
+                    $options: "i",
+                },
+            },
+            {
+                phone: {
+                    $regex: keyword,
+                    $options: "i",
+                },
+            },
+        ],
+    });
+
+    return patient;
 
 }
 
@@ -115,4 +150,32 @@ export async function deletePatientService(id) {
         message: "Patient deleted successfully.",
     };
 
+}
+
+export async function getPatientHistoryService(keyword) {
+
+    const patient = await getPatientDocument(keyword);
+
+    if (!patient) {
+        throw new Error("Patient not found.");
+    }
+
+    const appointments = await Appointment.find({
+        patient: patient._id,
+    })
+        .populate({
+            path: "doctor",
+            populate: {
+                path: "userId",
+                select: "name",
+            },
+        })
+        .sort({
+            appointmentDate: -1,
+        });
+
+    return patientHistoryResponse(
+        patient,
+        appointments
+    );
 }

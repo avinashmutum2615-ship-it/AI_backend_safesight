@@ -2,6 +2,8 @@ import Appointment from "../../models/Appointment.js";
 import Visit from "../../models/Visit.js";
 import generateVisitId from "../../utils/generateVisitId.js";
 import visitResponse from "../../utils/dto/visitResponse.js";
+import Doctor from "../../models/Doctor.js";
+import { getPatientDocument } from "../patient/patientService.js";
 
 export const checkInAppointmentService = async (appointmentId) => {
 
@@ -198,4 +200,48 @@ export const getVisitByIdService = async (visitId) => {
 
     return visitResponse(visit);
 
+};
+
+export const startVisitByPatientService = async (
+    doctorId,
+    patientKeyword
+) => {
+
+    // Find patient
+    const patient = await getPatientDocument(patientKeyword);
+
+    if (!patient) {
+        throw new Error("Patient not found.");
+    }
+
+    // Find today's waiting visit
+    const visit = await Visit.findOne({
+        patient: patient._id,
+        doctor: doctorId,
+        status: "Waiting",
+        isActive: true,
+    })
+    .populate({
+        path: "patient",
+        select: "patientId name phone",
+    })
+    .populate({
+        path: "doctor",
+        select: "name",
+    })
+    .populate("appointment");
+
+    if (!visit) {
+        throw new Error(
+            "No waiting visit found for this patient."
+        );
+    }
+
+    // Start consultation
+    visit.status = "In Progress";
+    visit.startedAt = new Date();
+
+    await visit.save();
+
+    return visitResponse(visit);
 };

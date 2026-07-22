@@ -31,7 +31,9 @@ async function ingest() {
         const records = chunks.map((chunk, index) => ({
             text: chunk.pageContent,
             embedding: vectors[index],
-            metadata: chunk.metadata,
+
+            source: chunk.metadata.source,
+            category: chunk.metadata.category,
         }));
 
         await collection.deleteMany({}); // Optional: clear old data

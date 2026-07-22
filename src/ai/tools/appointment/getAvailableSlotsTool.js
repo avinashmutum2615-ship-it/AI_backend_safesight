@@ -3,6 +3,11 @@ import { z } from "zod";
 import { createTool } from "../baseTool.js";
 import { getAvailableSlotsService } from "../../../../services/appointment/appointmentService.js";
 import { searchDoctorsService } from "../../../../services/doctor/doctorService.js";
+import {
+    logInfo,
+    logSuccess,
+    logError,
+} from "../../../../utils/logger.js";
 
 export const getAvailableSlotsTool = createTool({
 
@@ -25,10 +30,26 @@ export const getAvailableSlotsTool = createTool({
 
    handler: async ({ doctor, date }) => {
 
+    const startTime = Date.now();
+
+    try {
+
+        logInfo("Get Available Slots Tool Started", {
+            doctor,
+            appointmentDate: date,
+        });
+
     const doctors = await searchDoctorsService(doctor);
 
+    if (doctors.length > 1) {
+        throw new Error(
+            "Multiple doctors found. Please specify the doctor."
+        );
+    }
     if (doctors.length === 0) {
-        throw new Error("Doctor not found.");
+        throw new Error(
+            `No doctor found matching "${doctor}".`
+        );
     }
 
     const selectedDoctor = doctors[0];
@@ -37,6 +58,13 @@ export const getAvailableSlotsTool = createTool({
         selectedDoctor.id,
         date
     );
+
+    logSuccess("Available Slots Retrieved", {
+        doctor: selectedDoctor.name,
+        appointmentDate: date,
+        totalSlots: slots.length,
+        executionTime: `${Date.now() - startTime} ms`,
+    });
 
         return {
             doctor: {
@@ -47,6 +75,14 @@ export const getAvailableSlotsTool = createTool({
             date,
             availableSlots: slots,
         };
+
+        } catch (error) {
+
+                logError("Get Available Slots Tool Error", error);
+
+                throw error;
+
+            }
 
     }
 

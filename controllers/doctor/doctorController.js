@@ -1,5 +1,5 @@
 import {
-    updateAvailabilityService,
+    updateDoctorAvailabilityService,
     getAvailableDoctorsService,
     getDoctorByIdService,
     updateDoctorService,

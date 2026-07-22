@@ -1,29 +1,17 @@
 import "dotenv/config";
-import mongoose from "mongoose";
+import { connectDb } from "../config/database.js";
+import { answerQuestion } from "../src/ai/rag/answerQuestion.js";
 
-import { todayAppointmentsTool } from "../src/ai/tools/appointment/todayAppointmentsTool.js";
+async function main() {
+    await connectDb();
 
-await mongoose.connect(process.env.MONGODB_URL);
-
-try {
-
-    const result = await todayAppointmentsTool.func(
-        {},
-        {
-            configurable: {
-                user: {
-                    id: "YOUR_USER_ID",
-                    role: "receptionist",
-                    name: "Receptionist"
-                }
-            }
-        }
+    const answer = await answerQuestion(
+        "What is cataract?"
     );
 
-    console.log(JSON.stringify(result, null, 2));
+    console.log(answer);
 
-} finally {
-
-    await mongoose.disconnect();
-
+    process.exit();
 }
+
+main();

@@ -6,19 +6,34 @@ export async function answerQuestion(question) {
 
     const docs = await retriever.invoke(question);
 
+    console.log(docs); 
+
     const context = docs
-        .map(doc => doc.pageContent)
+        .map(doc => `
+    Source: ${doc.metadata.source}
+    Category: ${doc.metadata.category}
+
+    ${doc.pageContent}
+    `)
         .join("\n\n");
 
     const prompt = `
-You are SafeSight AI.
+    You are SafeSight AI, an ophthalmology assistant.
 
-Context:
-${context}
+    Answer ONLY using the provided context.
 
-Question:
-${question}
-`;
+    If the answer is not available in the context, reply:
+
+    "I couldn't find that information in the clinic knowledge base."
+
+    Always mention the document source when appropriate.
+
+    Context:
+    ${context}
+
+    Question:
+    ${question}
+    `;
 
     const response = await llm.invoke(prompt);
 

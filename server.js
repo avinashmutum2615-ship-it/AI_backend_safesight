@@ -11,8 +11,8 @@ import doctorRoutes from "./routes/doctor/doctorRoutes.js";
 import appointmentRoutes from "./routes/appointment/appointmentRoutes.js";
 import receptionistRoutes from"./routes/receptionist/receptionistRoutes.js";
 import prescriptionRoutes from "./routes/prescription/prescriptionRoutes.js";
-
-
+import publicRoute from "./routes/ai/publicRoute.js";
+import doctorRoute from "./routes/ai/doctorRoute.js";
 
 
 const app = express();
@@ -36,6 +36,8 @@ app.use("/api/doctors", doctorRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/receptionists", receptionistRoutes);
 app.use("/api/prescriptions", prescriptionRoutes);
+app.use("/api/public/chat", publicRoute);
+app.use("/api/doctor/chat", doctorRoute);
 
 app.get("/", (req, res) => {
     res.send("Welcome to SafeSight AI");

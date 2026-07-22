@@ -3,23 +3,7 @@ import User from "../../models/User.js";
 import { doctorListResponse } from "../../utils/dto/doctorListResponse.js";
 import { doctorResponse } from "../../utils/dto/doctorResponse.js";
 
-export async function updateAvailabilityService(userId, status) {
 
-    const doctor = await Doctor.findOne({
-        userId,
-    });
-
-    if (!doctor) {
-        throw new Error("Doctor not found.");
-    }
-
-    doctor.availability.status = status;
-    doctor.availability.updatedAt = new Date();
-
-    await doctor.save();
-
-    return doctor;
-}
 
 export async function getAvailableDoctorsService() {
 
@@ -184,3 +168,46 @@ export async function searchDoctorsService(keyword) {
 
     return results;
 }
+
+export const updateDoctorAvailabilityService = async (
+    doctorId,
+    data
+) => {
+
+    const doctor = await Doctor.findById(doctorId);
+
+    if (!doctor) {
+        throw new Error("Doctor not found.");
+    }
+
+    if (data.status !== undefined) {
+        doctor.availability.status = data.status;
+    }
+
+    if (data.workingDays) {
+        doctor.availability.workingDays = data.workingDays;
+    }
+
+    if (data.startTime) {
+        doctor.availability.startTime = data.startTime;
+    }
+
+    if (data.endTime) {
+        doctor.availability.endTime = data.endTime;
+    }
+
+    if (data.slotDuration) {
+        doctor.availability.slotDuration = data.slotDuration;
+    }
+
+    if (data.breaks) {
+        doctor.availability.breaks = data.breaks;
+    }
+
+    doctor.availability.updatedAt = new Date();
+
+    await doctor.save();
+
+    return doctor.availability;
+
+};

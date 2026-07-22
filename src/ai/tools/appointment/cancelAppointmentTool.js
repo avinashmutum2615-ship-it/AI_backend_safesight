@@ -15,6 +15,12 @@ import {
     cancelAppointmentService
 } from "../../../../services/appointment/appointmentService.js";
 
+import {
+    logInfo,
+    logSuccess,
+    logError,
+} from "../../../../utils/logger.js";
+
 const schema = z.object({
 
     patient: z.string(),
@@ -36,6 +42,14 @@ export const cancelAppointmentTool = createTool({
 
     handler: async (input, config) => {
 
+        try {
+
+            logInfo("Cancel Appointment Tool Started", {
+                patient: input.patient,
+                doctor: input.doctor,
+                appointmentDate: input.appointmentDate,     
+            });
+
         const user = config.configurable.user;
 
         if (!user) {
@@ -48,11 +62,17 @@ export const cancelAppointmentTool = createTool({
             throw new Error("Patient not found.");
         }
 
+        if (patients.length > 1) {
+            throw new Error(
+                "Multiple patients found. Please specify the patient."
+            );
+        }
+
         const patient = patients[0];
 
         let doctor = null;
 
-        if (input.doctor) {
+       if (input.doctor) {
 
             const doctors = await searchDoctorsService(input.doctor);
 
@@ -60,8 +80,13 @@ export const cancelAppointmentTool = createTool({
                 throw new Error("Doctor not found.");
             }
 
-            doctor = doctors[0];
+            if (doctors.length > 1) {
+                throw new Error(
+                    "Multiple doctors found. Please specify the doctor."
+                );
+            }
 
+            doctor = doctors[0];
         }
 
         const appointment = await getAppointmentService({
@@ -80,8 +105,21 @@ export const cancelAppointmentTool = createTool({
                 user.id
             );
 
+        logSuccess("Appointment Cancelled", {
+            patient: patient.name,
+            doctor: doctor?.name ?? appointment.doctor?.name,
+            appointmentDate: input.appointmentDate,
+            executionTime: `${Date.now() - startTime} ms`,
+        });
+
         return cancelledAppointment;
 
+        } catch (error) {
+
+            logError("Cancel Appointment Tool Error", error);
+
+            throw error;
+        }
     }
 
 });

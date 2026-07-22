@@ -1,8 +1,15 @@
-import { chatbotGraph } from "../graph/index.js";
-import { logInfo, logSuccess, logError } from "../../../utils/logger.js";
+import { HumanMessage } from "@langchain/core/messages";
 
-export async function receptionistAgent({
-    messages,
+import { chatbotGraph } from "../graph/index.js";
+
+import {
+    logInfo,
+    logSuccess,
+    logError,
+} from "../../../utils/logger.js";
+
+export async function doctorAgent({
+    message,
     threadId,
     user,
 }) {
@@ -11,47 +18,39 @@ export async function receptionistAgent({
 
     try {
 
-        logInfo("Receptionist Agent Started", {
+        logInfo("Doctor Agent Started", {
             threadId,
-            user: user.name,
-            role: user.role,
+            doctorId: user.id,
         });
 
         const result = await chatbotGraph.invoke(
             {
-                messages,
+                messages: [
+                    new HumanMessage(message),
+                ],
             },
             {
                 configurable: {
                     thread_id: threadId,
+                    agent: "doctor",
                     user,
-                    agent: "receptionist",
                 },
             }
         );
 
-        const checkpoint = await chatbotGraph.getState({
-    configurable: {
-        thread_id: threadId,
-    },
-});
-
-
-
-        logSuccess("Receptionist Agent Finished", {
+        logSuccess("Doctor Agent Finished", {
             threadId,
             executionTime: `${Date.now() - startTime} ms`,
         });
 
         return result.messages.at(-1);
 
-
-
     } catch (error) {
 
-        logError("Receptionist Agent Error", error);
+        logError("Doctor Agent Error", error);
 
         throw error;
+
     }
 
 }

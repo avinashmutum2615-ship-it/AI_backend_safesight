@@ -5,6 +5,14 @@ import { cancelAppointmentTool } from "./cancelAppointmentTool.js";
 import { searchAppointmentsTool } from "./searchAppointmentsTool.js";
 import { todayAppointmentsTool } from "./todayAppointmentsTool.js";
 
+export {
+    getAvailableSlotsTool,
+    createAppointmentTool,
+    updateAppointmentTool,
+    cancelAppointmentTool,
+    searchAppointmentsTool,
+    todayAppointmentsTool,
+};
 
 export const appointmentTools = [
     getAvailableSlotsTool,

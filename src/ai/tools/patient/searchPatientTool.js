@@ -6,6 +6,12 @@ import {
     searchPatientsService,
 } from "../../../../services/patient/patientService.js";
 
+import {
+    logInfo,
+    logSuccess,
+    logError,
+} from "../../../../utils/logger.js";
+
 export const searchPatientTool = createTool({
 
     name: "search_patient",
@@ -23,11 +29,33 @@ export const searchPatientTool = createTool({
 
     handler: async ({ keyword }) => {
 
-    console.log("🔍 searchPatientTool called:", keyword);
+        const startTime = Date.now();
 
-    return await searchPatientsService(keyword);
+        try {
 
-},
+            logInfo("Search Patient Tool", {
+                keyword,
+            });
+
+            const patients = await searchPatientsService(keyword);
+
+            logSuccess("Search Patient Completed", {
+                keyword,
+                results: patients.length,
+                patientIds: patients.map(patient => patient.patientId),
+                executionTime: `${Date.now() - startTime} ms`,
+            });
+
+            return patients;
+
+        } catch (error) {
+
+            logError("Search Patient Tool Error", error);
+
+            throw error;
+
+        }
+
+    },
 
 });
-

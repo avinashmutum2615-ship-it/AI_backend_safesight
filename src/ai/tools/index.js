@@ -8,10 +8,12 @@ import {
 } from "./doctor/index.js";
 
 import { appointmentTools } from "./appointment/index.js";
+import { knowledgeTools } from "./knowledge/index.js";
 
 export const tools = [
     searchPatientTool,
     createPatientTool,
     searchDoctorTool,
     ...appointmentTools,
+    ...knowledgeTools,
 ];

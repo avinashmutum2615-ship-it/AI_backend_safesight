@@ -2,6 +2,7 @@ import Appointment from "../../models/Appointment.js";
 import Patient from "../../models/Patient.js";
 import Doctor from "../../models/Doctor.js";
 import appointmentResponse from "../../utils/dto/appointmentResponse.js";
+import { getPatientDocument } from "../patient/patientService.js";
 
 
 const timeToMinutes = (time) => {
@@ -32,21 +33,21 @@ export const createAppointmentService = async (data, userId) => {
 
     const existingAppointment = await Appointment.findOne({
 
-    doctor: doctor._id,
+        doctor: doctor._id,
 
-    appointmentDate: data.appointmentDate,
+        appointmentDate: data.appointmentDate,
 
-    appointmentTime: data.appointmentTime,
+        appointmentTime: data.appointmentTime,
 
-    isActive: true,
+        isActive: true,
 
-    status: {
-        $nin: [
-            "Cancelled",
-            "Completed",
-            "No Show"
-        ]
-    }
+        status: {
+            $nin: [
+                "Cancelled",
+                "Completed",
+                "No Show"
+            ]
+        }
 
     });
 
@@ -102,18 +103,18 @@ export const getAllAppointmentsService = async () => {
         isActive: true
 
     })
-    .populate({
-        path: "patient",
-        select: "patientId name phone"
-    })
-    .populate({
-        path: "doctor",
-        select: "name"
-    })
-    .sort({
-        appointmentDate: 1,
-        appointmentTime: 1
-    });
+        .populate({
+            path: "patient",
+            select: "patientId name phone"
+        })
+        .populate({
+            path: "doctor",
+            select: "name"
+        })
+        .sort({
+            appointmentDate: 1,
+            appointmentTime: 1
+        });
 
     return appointments.map(appointmentResponse);
 
@@ -147,8 +148,8 @@ export const updateAppointmentService = async (
 
     const appointment = await getAppointmentService({
         appointmentId: id,
-    });   
-    
+    });
+
     appointment.updatedBy = userId;
 
     // Check Doctor
@@ -196,8 +197,8 @@ export const updateAppointmentService = async (
     }
 
     // Update allowed fields
-   if (data.doctor) {
-    appointment.doctor = doctor._id;
+    if (data.doctor) {
+        appointment.doctor = doctor._id;
     }
 
     if (data.appointmentDate) {
@@ -283,9 +284,9 @@ export const getAvailableSlotsService = async (
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-   const query = {
+    const query = {
 
-    doctor: doctorId,
+        doctor: doctorId,
 
         appointmentDate: {
             $gte: startOfDay,
@@ -556,3 +557,89 @@ export const searchAppointmentsService = async ({
     return appointments.map(appointmentResponse);
 
 };
+
+export async function getTodayAppointmentsService(doctorId) {
+
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    const appointments = await Appointment.find({
+
+        doctor: doctorId,
+
+        appointmentDate: {
+            $gte: start,
+            $lte: end,
+        },
+
+        isActive: true,
+
+    })
+        .populate("patient")
+        .sort({
+            appointmentTime: 1,
+        });
+
+    return appointments;
+
+}
+export async function startConsultationService(
+    doctorId,
+    patientKeyword
+) {
+
+    const patient = await getPatientDocument(patientKeyword);
+
+    if (!patient) {
+        throw new Error("Patient not found.");
+    }
+
+    const today = new Date();
+
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+
+    tomorrow.setDate(today.getDate() + 1);
+
+    const appointment = await Appointment.findOne({
+
+        patient: patient._id,
+
+        doctor: doctorId,
+
+        appointmentDate: {
+            $gte: today,
+            $lt: tomorrow,
+        },
+
+        isActive: true,
+
+    });
+
+    if (!appointment) {
+        throw new Error(
+            "Today's appointment not found."
+        );
+    }
+
+    if (
+        !["Confirmed", "Checked In"].includes(
+            appointment.status
+        )
+    ) {
+        throw new Error(
+            `Cannot start consultation because appointment is currently '${appointment.status}'.`
+        );
+    }
+
+    appointment.status = "In Consultation";
+
+    await appointment.save();
+
+    return appointment;
+
+}

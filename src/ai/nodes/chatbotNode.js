@@ -1,20 +1,57 @@
 import { SystemMessage } from "@langchain/core/messages";
+import { agentRegistry } from "../config/agentRegistry.js";
+import {
+    logInfo,
+    logSuccess,
+    logError,
+} from "../../../utils/logger.js";
 
-import { llm } from "../config/gemini.js";
-import { receptionistPrompt } from "../prompts/index.js";
-import { tools } from "../tools/index.js";
 
-const model = llm.bindTools(tools);
+export async function chatbotNode(state, config) {
 
-export async function chatbotNode(state) {
+    const startTime = Date.now();
 
-    const response = await model.invoke([
-        new SystemMessage(receptionistPrompt),
-        ...state.messages,
-    ]);
+    try {
 
-    return {
-        messages: [response],
-    };
+        logInfo("Chatbot Node Started", {
+            messages: state.messages.length,
+        });
+
+        const agentType =
+         config.configurable?.agent || "receptionist";
+
+        const agent =
+            agentRegistry[agentType] ??
+            agentRegistry.receptionist;
+
+        const response = await agent.model.invoke([
+            new SystemMessage(agent.prompt),
+            ...state.messages,
+        ]);
+
+        logSuccess("LLM Response Generated", {
+            executionTime: `${Date.now() - startTime} ms`,
+            toolCalls: response.tool_calls?.length ?? 0,
+        });
+
+        if (response.tool_calls?.length) {
+
+            logInfo("Tool Calls", {
+                tools: response.tool_calls.map(tool => tool.name),
+            });
+
+        }
+
+        return {
+            messages: [response],
+        };
+
+    } catch (error) {
+
+        logError("Chatbot Node Error", error);
+
+        throw error;
+
+    }
 
 }

@@ -8,10 +8,29 @@ export const searchDoctorTool = createTool({
     name: "search_doctor",
 
     description:
-        "Search doctors by name, specialization or branch.",
+    `Search doctors in the clinic.
+
+    Use this tool whenever the user asks about:
+    - doctor name
+    - specialization
+    - retina specialist
+    - cataract specialist
+    - cornea specialist
+    - glaucoma specialist
+    - pediatric ophthalmologist
+    - qualifications
+    - experience
+    - consultation fee
+    - availability
+
+    Always use this tool instead of answering from memory.`,
 
     schema: z.object({
-        keyword: z.string(),
+        keyword: z
+            .string()
+            .describe(
+                "Doctor name or specialization, for example: Retina, Cataract, Cornea, Dr. Sharma"
+            ),
     }),
 
   handler: async ({ keyword }, config) => {
