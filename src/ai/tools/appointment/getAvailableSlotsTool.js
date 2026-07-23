@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 import { createTool } from "../baseTool.js";
-import { getAvailableSlotsService } from "../../../../services/appointment/appointmentService.js";
-import { searchDoctorsService } from "../../../../services/doctor/doctorService.js";
+import { getAvailableSlotsService } from "../../../services/appointment/appointmentService.js";
+import { searchDoctorsService } from "../../../services/doctor/doctorService.js";
 import {
     logInfo,
     logSuccess,

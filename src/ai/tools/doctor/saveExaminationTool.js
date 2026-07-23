@@ -1,8 +1,8 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 
-import Doctor from "../../../../models/Doctor.js";
-import { saveExaminationService } from "../../../../services/examination/examinationService.js";
+import Doctor from "../../../models/Doctor.js";
+import { saveExaminationService } from "../../../services/examination/examinationService.js";
 
 export const saveExaminationTool = new DynamicStructuredTool({
     name: "save_examination",

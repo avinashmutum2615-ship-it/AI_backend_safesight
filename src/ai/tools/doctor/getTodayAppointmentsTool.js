@@ -3,13 +3,14 @@ import { createTool } from "../baseTool.js";
 
 import {
     getTodayAppointmentsService,
-} from "../../../../services/appointment/appointmentService.js";
+} from "../../../services/appointment/appointmentService.js";
 
 import {
     todayAppointmentsResponse,
 } from "../../../../utils/dto/todayAppointmentsResponse.js";
 
-import Doctor from "../../../../models/Doctor.js";
+import Doctor from "../../../models/Doctor.js";
+import { getRuntimeContext } from "../../context/runtimeContext.js";
 
 export const getTodayAppointmentsTool = createTool({
 
@@ -20,25 +21,33 @@ export const getTodayAppointmentsTool = createTool({
 
     schema: z.object({}),
 
-    handler: async (_, config) => {
+    handler: async () => {
 
-        const doctor = await Doctor.findOne({
-            userId: config.configurable.user.id,
-        });
+    const context = getRuntimeContext();
 
-        if (!doctor) {
-            throw new Error("Doctor not found.");
-        }
+    if (!context?.user) {
+        throw new Error("Request context is missing.");
+    }
 
-        const appointments =
-            await getTodayAppointmentsService(
-                doctor._id
-            );
+    const { user } = context;
 
-        return todayAppointmentsResponse(
-            appointments
+    const doctor = await Doctor.findOne({
+        userId: user.id,
+    });
+
+    if (!doctor) {
+        throw new Error("Doctor not found.");
+    }
+
+    const appointments =
+        await getTodayAppointmentsService(
+            doctor._id
         );
 
-    },
+    return todayAppointmentsResponse(
+        appointments
+    );
+
+}
 
 });

@@ -4,7 +4,7 @@ import { createTool } from "../baseTool.js";
 
 import {
     searchAppointmentsService,
-} from "../../../../services/appointment/appointmentService.js";
+} from "../../../services/appointment/appointmentService.js";
 
 import {
     logInfo,

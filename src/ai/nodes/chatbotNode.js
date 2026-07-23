@@ -24,10 +24,9 @@ export async function chatbotNode(state, config) {
             agentRegistry[agentType] ??
             agentRegistry.receptionist;
 
-        const response = await agent.model.invoke([
-            new SystemMessage(agent.prompt),
-            ...state.messages,
-        ]);
+        const response = await agent.model.invoke(
+    state.messages
+);
 
         logSuccess("LLM Response Generated", {
             executionTime: `${Date.now() - startTime} ms`,

@@ -1,4 +1,4 @@
-import Visit from "../models/Visit.js";
+import Visit from "../src/models/Visit.js";
 
 export default async function generateVisitId() {
 

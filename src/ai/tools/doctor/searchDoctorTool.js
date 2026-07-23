@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { createTool } from "../baseTool.js";
-import { searchDoctorsService } from "../../../../services/doctor/doctorService.js";
+import { searchDoctorsService } from "../../../services/doctor/doctorService.js";
 
 export const searchDoctorTool = createTool({
 

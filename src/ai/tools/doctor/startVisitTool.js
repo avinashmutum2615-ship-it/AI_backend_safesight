@@ -1,7 +1,7 @@
 import { z } from "zod";
-import Doctor from "../../../../models/Doctor.js";
+import Doctor from "../../../models/Doctor.js";
 import { createTool } from "../baseTool.js";
-import { startVisitByPatientService } from "../../../../services/visit/visitService.js";
+import { startVisitByPatientService } from "../../../services/visit/visitService.js";
 
 export const startVisitTool = createTool({
 

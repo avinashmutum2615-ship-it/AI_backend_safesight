@@ -1,4 +1,4 @@
-import Patient from "../models/Patient.js";
+import Patient from "../src/models/Patient.js";
 
 export async function generatePatientId() {
 

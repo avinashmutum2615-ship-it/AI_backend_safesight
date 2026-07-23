@@ -3,7 +3,7 @@ import { createTool } from "../baseTool.js";
 
 import {
     updateDoctorAvailabilityService,
-} from "../../../../services/doctor/doctorService.js";
+} from "../../../services/doctor/doctorService.js";
 
 export const updateDoctorAvailabilityTool =
 createTool({

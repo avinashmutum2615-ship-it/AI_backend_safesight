@@ -17,11 +17,10 @@ export function createTool({
 
         func: async (input, config) => {
 
-            logInfo("AI Tool Invoked", {
-                tool: name,
-                input,
-            });
-
+    logInfo("AI Tool Invoked", {
+        tool: name,
+        input,
+    });
             try {
 
                 const result = await handler(input, config);

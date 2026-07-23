@@ -3,7 +3,7 @@ import { createTool } from "../baseTool.js";
 
 import {
     getPatientHistoryService,
-} from "../../../../services/patient/patientService.js";
+} from "../../../services/patient/patientService.js";
 
 export const getPatientHistoryTool = createTool({
 

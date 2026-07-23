@@ -4,7 +4,7 @@ import { createTool } from "../baseTool.js";
 
 import {
     searchPatientsService,
-} from "../../../../services/patient/patientService.js";
+} from "../../../services/patient/patientService.js";
 
 import {
     logInfo,

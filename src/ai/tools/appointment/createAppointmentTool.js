@@ -5,15 +5,15 @@ import { createTool } from "../baseTool.js";
 import {
     createAppointmentService,
     getAvailableSlotsService,
-} from "../../../../services/appointment/appointmentService.js";
+} from "../../../services/appointment/appointmentService.js";
 
 import {
     searchPatientsService,
-} from "../../../../services/patient/patientService.js";
+} from "../../../services/patient/patientService.js";
 
 import {
     searchDoctorsService,
-} from "../../../../services/doctor/doctorService.js";
+} from "../../../services/doctor/doctorService.js";
 
 import {
     logInfo,

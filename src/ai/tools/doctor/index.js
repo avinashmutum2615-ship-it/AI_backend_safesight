@@ -6,6 +6,7 @@ import { startConsultationTool } from "./startConsultationTool.js";
 import { saveExaminationTool } from "./saveExaminationTool.js";
 import { startVisitTool } from "./startVisitTool.js";
 import { createPrescriptionTool } from "./createPrescriptionTool.js";
+import { completeVisitTool } from "./completeVisitTool.js";
 
 export {
     updateDoctorAvailabilityTool,
@@ -16,14 +17,15 @@ export {
     saveExaminationTool,
     startVisitTool,
     createPrescriptionTool,
+    completeVisitTool,
 };
 
 export const doctorTools = [
     updateDoctorAvailabilityTool,
     getPatientHistoryTool,
     getTodayAppointmentsTool,
-    startConsultationTool,
-    saveExaminationTool,
     startVisitTool,
+    saveExaminationTool,
     createPrescriptionTool,
+    completeVisitTool,
 ];
