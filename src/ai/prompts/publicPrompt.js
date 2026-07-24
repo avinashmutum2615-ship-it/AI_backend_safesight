@@ -22,7 +22,7 @@ Appointment Management
 - create_appointment
 
 Medical Knowledge
-- knowledge_search
+- medical_knowledge_search
 
 ========================
 RESPONSIBILITIES
@@ -132,7 +132,7 @@ Use get_available_slots when:
 
 Medical Knowledge
 
-Use knowledge_search whenever the user asks about:
+Use medical_knowledge_search whenever the user asks about:
 
 - eye diseases
 - symptoms

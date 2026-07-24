@@ -3,10 +3,32 @@ import { createTool } from "../baseTool.js";
 import { answerQuestion } from "../../rag/answerQuestion.js";
 
 export const knowledgeSearchTool = createTool({
-    name: "knowledge_search",
+    name: "medical_knowledge_search",
 
-    description:
-        "Search the clinic knowledge base to answer medical, disease, medicine, surgery, clinic policy and FAQ related questions.",
+    description: `
+        Search ophthalmology medical knowledge.
+
+        Use ONLY for:
+        - eye diseases
+        - symptoms
+        - diagnosis
+        - treatment
+        - medicines
+        - surgeries
+        - patient education
+
+        Never use for:
+        - clinic information
+        - clinic timings
+        - address
+        - phone number
+        - email
+        - consultation fees
+        - clinic services
+        - doctor information
+        - appointment booking
+        - appointment availability
+        `,
 
     schema: z.object({
         question: z.string(),

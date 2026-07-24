@@ -14,7 +14,10 @@ import {
     createPatientTool,
 } from "../patient/index.js";
 
+import { getClinicInfoTool } from "../clinic/index.js";
+
 export const publicTools = [
+    getClinicInfoTool,
     searchPatientTool,
     createPatientTool,
     searchDoctorTool,
